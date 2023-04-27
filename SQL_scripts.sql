@@ -1,10 +1,10 @@
---How many olympics games have been held?
+/* 1. How many olympics games have been held?*/
 
 SELECT COUNT(DISTINCT GAMES)
 FROM ATHLETE_EVENTS;
 
 
---List down all Olympics games held so far.
+/* 2. List down all Olympics games held so far.*/
 
 SELECT DISTINCT GAMES
 FROM ATHLETE_EVENTS;
@@ -22,194 +22,207 @@ SELECT *
 FROM OLYMPIC_GAMES;
 
 
---Mention the total no of nations who participated in each olympics game?
+/* 3. Mention the total no of nations who participated in each olympics game?*/
+
 SELECT GAMES,
-COUNT(DISTINCT NOC)
+	COUNT(DISTINCT NOC)
 FROM ATHLETE_EVENTS
 GROUP BY GAMES;
 
 
---Which year saw the highest and lowest no of countries participating in olympics?
+/* 4. Which year saw the highest and lowest no of countries participating in olympics?*/
 
-select  games,count(distinct noc) total_countries from  athlete_events group by 1 order by 2;
+SELECT GAMES,
+	COUNT(DISTINCT NOC) TOTAL_COUNTRIES
+FROM ATHLETE_EVENTS
+GROUP BY 1
+ORDER BY 2;
 
 WITH COUNTRIES_PARTICIPANT AS
- (
- 	SELECT YEAR,
-	COUNT(DISTINCT NOC) TOTAL_COUNTRIES
- 	FROM ATHLETE_EVENTS
- 	GROUP BY YEAR
- )
+	(
+		SELECT YEAR,
+			COUNT(DISTINCT NOC) TOTAL_COUNTRIES
+		FROM ATHLETE_EVENTS
+		GROUP BY YEAR
+	)
 SELECT 
 	DISTINCT MAX(TOTAL_COUNTRIES) OVER (ORDER BY TOTAL_COUNTRIES DESC) AS HIGHEST_COUNTRIES,
 	MIN(TOTAL_COUNTRIES) OVER (ORDER BY TOTAL_COUNTRIES) AS LOWEST_COUNTRIES
-FROM COUNTRIES_PARTICIPANT; 
+FROM COUNTRIES_PARTICIPANT;
  
 
---Which nation has participated in all of the olympic games? 
+/* 5. Which nation has participated in all of the olympic games? */
 
 SELECT N.REGION,
- COUNT(DISTINCT GAMES)
+	COUNT(DISTINCT GAMES)
 FROM NOC_REGIONS N
 INNER JOIN ATHLETE_EVENTS A ON A.NOC = N.NOC
 GROUP BY A.NOC,
- N.REGION
+	N.REGION
 HAVING COUNT(DISTINCT GAMES) =
- (
-	SELECT COUNT(DISTINCT GAMES)
-  	FROM ATHLETE_EVENTS
- );
-
+	(
+		SELECT COUNT(DISTINCT GAMES)
+		FROM ATHLETE_EVENTS
+	);
 --OR
 
 WITH ALL_GAMES AS
- (
-  SELECT NOC,
-   COUNT(DISTINCT GAMES) "total games"
-  FROM ATHLETE_EVENTS
-  GROUP BY NOC
-  HAVING COUNT(DISTINCT GAMES) =
-   (
-	SELECT COUNT(DISTINCT GAMES)
-    	FROM ATHLETE_EVENTS
-   )
- )
+	(
+		SELECT NOC,
+			COUNT(DISTINCT GAMES) "total games"
+		FROM ATHLETE_EVENTS
+		GROUP BY NOC
+		HAVING COUNT(DISTINCT GAMES) =
+			(SELECT COUNT(DISTINCT GAMES)
+				FROM ATHLETE_EVENTS)
+	)
 SELECT N.REGION,
- "total games"
+	"total games"
 FROM NOC_REGIONS N
 INNER JOIN ALL_GAMES A ON A.NOC = N.NOC;
 
 
---Identify the sport which was played in all summer olympics.
+/* 6. Identify the sport which was played in all summer olympics.*/
 
 SELECT SPORT,
- COUNT(DISTINCT GAMES) "Total Games"
+	COUNT(DISTINCT GAMES) "Total Games"
 FROM ATHLETE_EVENTS
 WHERE GAMES ilike '%Summer%'
 GROUP BY SPORT
 HAVING COUNT(DISTINCT GAMES) =
- (
-  SELECT COUNT(DISTINCT GAMES)
-  FROM ATHLETE_EVENTS
-  WHERE GAMES ilike '%Summer%'
- );
+	(
+		SELECT COUNT(DISTINCT GAMES)
+		FROM ATHLETE_EVENTS
+		WHERE GAMES ilike '%Summer%'
+	);
  
  
  
---Which Sports were just played only once in the olympics? 
+/* 7. Which Sports were just played only once in the olympics? */
 
 SELECT SPORT,
- COUNT(DISTINCT GAMES) "Total Games"
+	COUNT(DISTINCT GAMES) "Total Games"
 FROM ATHLETE_EVENTS
 GROUP BY SPORT
 HAVING COUNT(DISTINCT GAMES) = 1;
 
 
---Fetch the total no of sports played in each olympic games.
-
+/* 8. Fetch the total no of sports played in each olympic games.*/
 
 SELECT GAMES,
- COUNT(DISTINCT SPORT) "Total Sports"
+	COUNT(DISTINCT SPORT) "Total Sports"
 FROM ATHLETE_EVENTS
 GROUP BY GAMES
 ORDER BY "Total Sports" DESC;
 
 
 
---Fetch details of the oldest athletes to win a gold medal.
+/* 9. Fetch details of the oldest athletes to win a gold medal.*/
 
 SELECT *
 FROM ATHLETE_EVENTS
 WHERE MEDAL ilike 'gold'
- AND AGE =
-  (SELECT MAX(AGE)
-   FROM ATHLETE_EVENTS
-   WHERE MEDAL ilike 'gold' )
+	AND AGE =
+		(SELECT MAX(AGE)
+			FROM ATHLETE_EVENTS
+			WHERE MEDAL ilike 'gold' )
 ORDER BY AGE DESC;
 
 
 
---Find the Ratio of male and female athletes participated in all olympic games.
+/* 10. Find the Ratio of male and female athletes participated in all olympic games.*/
 
 WITH MALES AS
- (
-  SELECT GAMES,
-   COUNT(SEX) "Males"
-  FROM ATHLETE_EVENTS
-  WHERE SEX ilike 'm'
-  GROUP BY GAMES
- ),
- FEMALES AS
- (
-  SELECT GAMES,
-   COUNT(SEX) "Females"
-  FROM ATHLETE_EVENTS
-  WHERE SEX ilike 'f'
-  GROUP BY GAMES
- )
+	(SELECT COUNT(*) "Males"
+		FROM ATHLETE_EVENTS
+		WHERE SEX ilike 'm' ),
+	FEMALES AS
+	(SELECT COUNT(SEX) "Females"
+		FROM ATHLETE_EVENTS
+		WHERE SEX ilike 'f' )
+SELECT "Males",
+	"Females",
+	CONCAT(ROUND("Males" ::decimal / "Females", 2), ' : ', 1) AS "M:F Ratio"
+FROM MALES,
+	FEMALES;
+	
+
+
+/* 11. Find the Ratio of male and female athletes participated in each olympic game.*/
+
+WITH MALES AS
+	(SELECT GAMES,
+			COUNT(SEX) "Males"
+		FROM ATHLETE_EVENTS
+		WHERE SEX ilike 'm'
+		GROUP BY GAMES),
+	FEMALES AS
+	(SELECT GAMES,
+			COUNT(SEX) "Females"
+		FROM ATHLETE_EVENTS
+		WHERE SEX ilike 'f'
+		GROUP BY GAMES)
 SELECT MALES.GAMES,
- "Males",
- "Females",
- "Males" / "Females" AS "M:F Ratio"
+	"Males",
+	"Females",
+	ROUND("Males" ::decimal / "Females", 2) AS "M:F Ratio"
 FROM MALES
 LEFT JOIN FEMALES ON MALES.GAMES = FEMALES.GAMES;
 
 
 
---Fetch the top 5 athletes who have won the most gold medals.
+/* 12. Fetch the top 5 athletes who have won the most gold medals.*/
 
 WITH GOLD_MEDAL_RANK AS
- (
-  SELECT ID,
-   NAME,
-   COUNT(MEDAL) "Gold Medals",
-   DENSE_RANK() OVER (ORDER BY COUNT(MEDAL) DESC) RANK_NUM
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'gold'
-  GROUP BY ID,
-   NAME
- )
+	(SELECT ID,
+			NAME,
+			COUNT(MEDAL) "Gold Medals",
+			DENSE_RANK() OVER (ORDER BY COUNT(MEDAL) DESC) RANK_NUM
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'gold'
+		GROUP BY ID,
+			NAME
+	)
 SELECT NAME,
- "Gold Medals"
+	"Gold Medals"
 FROM GOLD_MEDAL_RANK
 WHERE RANK_NUM <= 5;
 
 
 
---Fetch the top 5 athletes who have won the most medals (gold/silver/bronze).
+/* 13. Fetch the top 5 athletes who have won the most medals (gold/silver/bronze).*/
 
 WITH MEDAL_RANK AS
- (
-  SELECT ID,
-   NAME,
-   COUNT(MEDAL) "Medals",
-   DENSE_RANK() OVER (ORDER BY COUNT(MEDAL) DESC) RANK_NUM
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL <> 'NA'
-  GROUP BY ID,
-   NAME
- )
+	(SELECT ID,
+			NAME,
+			COUNT(MEDAL) "Medals",
+			DENSE_RANK() OVER (ORDER BY COUNT(MEDAL) DESC) RANK_NUM
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL <> 'NA'
+		GROUP BY ID,
+			NAME
+	)
 SELECT NAME,
- "Medals",
- RANK_NUM
+	"Medals",
+	RANK_NUM
 FROM MEDAL_RANK
 WHERE RANK_NUM <= 5;
 
 
 
---Fetch the top 5 most successful countries in olympics. Success is defined by no of medals won.
+/* 14. Fetch the top 5 most successful countries in olympics. Success is defined by no of medals won.*/
 
 WITH MEDAL_RANK AS
- (
-  SELECT NOC,
-   COUNT(MEDAL) "Medals",
-   DENSE_RANK() OVER (ORDER BY COUNT(MEDAL) DESC) RANK_NUM
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL <> 'NA'
-  GROUP BY NOC
- )
+	(
+		SELECT NOC,
+			COUNT(MEDAL) "Medals",
+			DENSE_RANK() OVER (ORDER BY COUNT(MEDAL) DESC) RANK_NUM
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL <> 'NA'
+		GROUP BY NOC
+	)
 SELECT REGION,
- "Medals"
+	"Medals"
 FROM MEDAL_RANK
 JOIN NOC_REGIONS ON NOC_REGIONS.NOC = MEDAL_RANK.NOC
 WHERE RANK_NUM <= 5
@@ -217,64 +230,41 @@ ORDER BY "Medals" DESC;
 
 
 
----List down total gold, silver and broze medals won by each country.
-
-
-SELECT REGION,
- SUM(CASE WHEN MEDAL = 'Gold' THEN 1 ELSE 0 END) AS GOLD,
- SUM(CASE WHEN MEDAL in ('Silver') THEN 1 ELSE 0 END) AS SILVER,
- SUM(CASE WHEN MEDAL = 'Bronze' THEN 1 ELSE 0 END) AS BRONZE
-FROM
- (
-  SELECT *
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL <> 'NA'
- ) T
-JOIN NOC_REGIONS ON NOC_REGIONS.NOC = T.NOC
-GROUP BY REGION
-ORDER BY 4 DESC,
- 3 DESC,
- 2 DESC;
- 
---OR
+/* 15. List down total gold, silver and broze medals won by each country. */
 
 WITH GOLD AS
- (
-  SELECT NOC,
-   COUNT(MEDAL) "Gold Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'gold'
-  GROUP BY NOC
- ),
-SILVER AS
- (
-  SELECT NOC,
-   COUNT(MEDAL) "Silver Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'silver'
-  GROUP BY NOC
- ),
-BRONZE AS
- (
-  SELECT NOC,
-   COUNT(MEDAL) "Bronze Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'bronze'
-  GROUP BY NOC
- ),
-TOTAL_MEDALS AS
- (
-  SELECT NOC,
-   COUNT(MEDAL) "Total Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL <> 'NA'
-  GROUP BY NOC
- )
+	(SELECT NOC,
+			COUNT(MEDAL) "Gold Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'gold'
+		GROUP BY NOC
+	),
+	SILVER AS
+	(SELECT NOC,
+			COUNT(MEDAL) "Silver Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'silver'
+		GROUP BY NOC
+	),
+	BRONZE AS
+	(SELECT NOC,
+			COUNT(MEDAL) "Bronze Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'bronze'
+		GROUP BY NOC
+	),
+	TOTAL_MEDALS AS
+	(SELECT NOC,
+			COUNT(MEDAL) "Total Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL <> 'NA'
+		GROUP BY NOC
+	)
 SELECT TOTAL_MEDALS.NOC,
- COALESCE("Gold Medals",0)"Gold Medals",
- COALESCE("Silver Medals",0)"Silver Medals",
- COALESCE("Bronze Medals",0)"Bronze Medals",
- "Total Medals"
+	COALESCE("Gold Medals", 0)"Gold Medals",
+	COALESCE("Silver Medals", 0)"Silver Medals",
+	COALESCE("Bronze Medals", 0)"Bronze Medals",
+	"Total Medals"
 FROM TOTAL_MEDALS
 LEFT OUTER JOIN GOLD ON GOLD.NOC = TOTAL_MEDALS.NOC
 LEFT OUTER JOIN SILVER ON SILVER.NOC = TOTAL_MEDALS.NOC
@@ -283,7 +273,7 @@ ORDER BY "Total Medals" DESC;
 
 
 
----List down total gold, silver and broze medals won by each country corresponding to each olympic games.
+/* 16. List down total gold, silver and broze medals won by each country corresponding to each olympic games. */
 
 SELECT REGION,
  GAMES,
@@ -303,60 +293,50 @@ ORDER BY 1;
 
 
 
---Identify which country won the most gold, most silver and most bronze medals in each olympic games.
+/* 17. Identify which country won the most gold, most silver and most bronze medals in each olympic games. */
 
 WITH CTE_GETTOTALBYNOC AS
- (
-  SELECT GAMES,
-   NOC,
-   SUM(CASE WHEN MEDAL = 'Gold' THEN 1 ELSE 0 END) AS CNT_GOLD,
-   SUM(CASE WHEN MEDAL = 'Silver' THEN 1 ELSE 0 END) AS CNT_SILVER,
-   SUM(CASE WHEN MEDAL = 'Bronze' THEN 1 ELSE 0 END) AS CNT_BRONZE
-  FROM
-   (SELECT *
-    FROM ATHLETE_EVENTS
-    WHERE MEDAL <> 'NA' ) X
-  GROUP BY GAMES,
-   NOC
-  ORDER BY GAMES
- ),
-CTE_GETMAXLMEDAL AS
- (
-  SELECT *,
-   DENSE_RANK() OVER(PARTITION BY GAMES ORDER BY CNT_GOLD DESC) AS RANK_GOLD,
-   DENSE_RANK() OVER(PARTITION BY GAMES ORDER BY CNT_SILVER DESC) AS RANK_SILVER,
-   DENSE_RANK() OVER(PARTITION BY GAMES ORDER BY CNT_BRONZE DESC) AS RANK_BRONZE
-  FROM CTE_GETTOTALBYNOC
- )
+	(SELECT GAMES,
+			NOC,
+			SUM(CASE WHEN MEDAL = 'Gold' THEN 1 ELSE 0 END) AS CNT_GOLD,
+			SUM(CASE WHEN MEDAL = 'Silver' THEN 1 ELSE 0 END) AS CNT_SILVER,
+			SUM(CASE WHEN MEDAL = 'Bronze' THEN 1 ELSE 0 END) AS CNT_BRONZE
+		FROM
+			(SELECT *
+				FROM ATHLETE_EVENTS
+				WHERE MEDAL <> 'NA' ) X
+		GROUP BY GAMES,
+			NOC
+		ORDER BY GAMES),
+	CTE_GETMAXLMEDAL AS
+	(SELECT *,
+			DENSE_RANK() OVER(PARTITION BY GAMES ORDER BY CNT_GOLD DESC) AS RANK_GOLD,
+			DENSE_RANK() OVER(PARTITION BY GAMES ORDER BY CNT_SILVER DESC) AS RANK_SILVER,
+			DENSE_RANK() OVER(PARTITION BY GAMES ORDER BY CNT_BRONZE DESC) AS RANK_BRONZE
+		FROM CTE_GETTOTALBYNOC)
 SELECT T1.GAMES,
- T1.MAX_GOLD,
- T2.MAX_SILVER,
- T3.MAX_BRONZE
+	T1.MAX_GOLD,
+	T2.MAX_SILVER,
+	T3.MAX_BRONZE
 FROM
- (
-  SELECT GAMES,
-   CONCAT(NOC,' - ',CNT_GOLD) AS MAX_GOLD
-  FROM CTE_GETMAXLMEDAL
-  WHERE RANK_GOLD < 2
- ) T1
+	(SELECT GAMES,
+			CONCAT(NOC, ' - ', CNT_GOLD) AS MAX_GOLD
+		FROM CTE_GETMAXLMEDAL
+		WHERE RANK_GOLD < 2 ) T1
 JOIN
- (
-  SELECT GAMES,
-   CONCAT(NOC,' - ',CNT_SILVER) AS MAX_SILVER
-  FROM CTE_GETMAXLMEDAL
-  WHERE RANK_SILVER < 2
- ) T2 ON T1.GAMES = T2.GAMES
+	(SELECT GAMES,
+			CONCAT(NOC, ' - ', CNT_SILVER) AS MAX_SILVER
+		FROM CTE_GETMAXLMEDAL
+		WHERE RANK_SILVER < 2 ) T2 ON T1.GAMES = T2.GAMES
 JOIN
- (
-  SELECT GAMES,
-   CONCAT(NOC,' - ',CNT_BRONZE) AS MAX_BRONZE
-  FROM CTE_GETMAXLMEDAL
-  WHERE RANK_BRONZE < 2
- ) T3 ON T1.GAMES = T3.GAMES ;
+	(SELECT GAMES,
+			CONCAT(NOC, ' - ', CNT_BRONZE) AS MAX_BRONZE
+		FROM CTE_GETMAXLMEDAL
+		WHERE RANK_BRONZE < 2 ) T3 ON T1.GAMES = T3.GAMES;
 
 
 
---Identify which country won the most gold, most silver, most bronze medals and the most medals in each olympic games.
+/* 18. Identify which country won the most gold, most silver, most bronze medals and the most medals in each olympic games. */
 
 WITH CTE_GETTOTALBYNOC AS
  (SELECT GAMES,
@@ -408,36 +388,39 @@ JOIN
 
 
 
---Which countries have never won gold medal but have won silver/bronze medals?
+/* 19. Which countries have never won gold medal but have won silver/bronze medals? */
 
 WITH GOLD AS
- (SELECT NOC,
-   COUNT(MEDAL) "Gold Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'gold'
-  GROUP BY NOC),
-SILVER AS
- (SELECT NOC,
-   COUNT(MEDAL) "Silver Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'silver'
-  GROUP BY NOC),
-BRONZE AS
- (SELECT NOC,
-   COUNT(MEDAL) "Bronze Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL ilike 'bronze'
-  GROUP BY NOC),
-TOTAL_MEDALS AS
- (SELECT NOC,
-   COUNT(MEDAL) "Total Medals"
-  FROM ATHLETE_EVENTS
-  WHERE MEDAL <> 'NA'
-  GROUP BY NOC)
-SELECT 
- REGION, 
- COALESCE("Silver Medals",0)"Silver Medals",
- COALESCE("Bronze Medals",0)"Bronze Medals" 
+	(SELECT NOC,
+			COUNT(MEDAL) "Gold Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'gold'
+		GROUP BY NOC
+	),
+	SILVER AS
+	(SELECT NOC,
+			COUNT(MEDAL) "Silver Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'silver'
+		GROUP BY NOC
+	),
+	BRONZE AS
+	(SELECT NOC,
+			COUNT(MEDAL) "Bronze Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL ilike 'bronze'
+		GROUP BY NOC
+	),
+	TOTAL_MEDALS AS
+	(SELECT NOC,
+			COUNT(MEDAL) "Total Medals"
+		FROM ATHLETE_EVENTS
+		WHERE MEDAL <> 'NA'
+		GROUP BY NOC
+	)
+SELECT REGION,
+	COALESCE("Silver Medals", 0)"Silver Medals",
+	COALESCE("Bronze Medals", 0)"Bronze Medals"
 FROM TOTAL_MEDALS
 LEFT OUTER JOIN GOLD ON GOLD.NOC = TOTAL_MEDALS.NOC
 LEFT OUTER JOIN SILVER ON SILVER.NOC = TOTAL_MEDALS.NOC
@@ -448,35 +431,37 @@ ORDER BY "Total Medals" DESC;
 
 
 
---In which Sport/event, India has won highest medals?
+/* 20. In which Sport/event, India has won highest medals? */
 
 WITH MEDALS AS
- (SELECT SPORT,
-   COUNT(MEDAL)"total"
-  FROM ATHLETE_EVENTS
-  WHERE NOC ilike 'ind'
-  GROUP BY SPORT
-  ORDER BY COUNT(MEDAL)),
- RANK_SPORT AS
- (SELECT *,
-   RANK() OVER(ORDER BY "total" DESC) AS "rank"
-  FROM MEDALS)
+	(SELECT SPORT,
+			COUNT(MEDAL)"total"
+		FROM ATHLETE_EVENTS
+		WHERE NOC ilike 'ind'
+		GROUP BY SPORT
+		ORDER BY COUNT(MEDAL)
+	),
+	RANK_SPORT AS
+	(SELECT *,
+			RANK() OVER(ORDER BY "total" DESC) AS "rank"
+		FROM MEDALS
+	)
 SELECT SPORT,
- "total"
+	"total"
 FROM RANK_SPORT
 WHERE "rank" = 1;
 
 
 
---Break down all olympic games where india won medal for Hockey and how many medals in each olympic games.
+/* 21. Break down all olympic games where india won medal for Hockey and how many medals in each olympic games. */
 
 SELECT SPORT,
- GAMES,
- COUNT(MEDAL)"total"
+	GAMES,
+	COUNT(MEDAL) "total"
 FROM ATHLETE_EVENTS
 WHERE NOC ilike 'ind'
- AND SPORT ilike 'hockey'
+	AND SPORT ilike 'hockey'
 GROUP BY SPORT,
- GAMES
+	GAMES
 ORDER BY COUNT(MEDAL) DESC;
 
